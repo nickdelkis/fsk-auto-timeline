@@ -1,7 +1,7 @@
 """ Purpose of this script is to automate protocol creation for Agrobacterium mediated transformation of Fusarium solani strain K
 Input: Several parameters that are required to create the protocol, such as number of constructs, antibiotic resistance, 
 number of plates per transformation, starting date, are there available competent cells or not
-Output: A protocol with days and dates, exported in a txt or doc file for further curation or PDF """
+Output: A protocol with day numbers from starting date and dates, exported in a txt or doc file for further curation, or PDF ready for print. """
 
 pip install datetime
 import datetime
@@ -10,35 +10,50 @@ def data_input():
 """ Ask for input from the user, to customize protocol """
 	# Number of constructs
 	construct_number = int(input(f'Number of constructs for transformation (e.g. 5): '))
-	if construct_number == 1:
-		con_name = str(input(f"Please enter your construct's name: "))
-		# agrobacterium antibiotic resistance gene
-		agro_antib_name = str(input(f'Antibiotic name used for Agrobacterium: '))
-		# agrobacterium antibiotic resistance concentration ug/mL
-		agro_antib_conc = int(input(f'Antibiotic concentration used for Agrobacterium: '))	
-	elif construct_number > 1:
+	if construct_number > 0:
 		print(f"Please enter your constructs' names")
-		name_lst = []
+		# create empty lists and dict
+		con_name_lst = []
+		agro_antib_lst = []
+		agro_antib_conc_lst = []
+		agro_antib_name_conc_dict = {}
+		con_agro_antib_dict = {}
+		con_fsk_antib_dict = {}
+		fsk_antib_name_conc_dict = {}
+		# iterate as many times as constructs to ask name, antibiotic and concentration for selection and add the information to lists and dicts
 		for n in construct_number:
-			name = str(input(f'Construct {n}: '))
-			con_name_lst = name_lst.append(name)
+			# Construct x Name
+			name = str(input(f'Construct {n} name: '))
+			# append name to list of construct names
+			con_name_lst.append(name)
+			# agrobacterium antibiotic resistance
+			agro_antib_name = str(input(f'Antibiotic used for selection of Agrobacterium strain containing {name}: '))
+			# append antibiotic name to list of antibiotic names
+			agro_antib_lst.append(agro_antib_name)
+			# agrobacterium antibiotic resistance concentration ug/mL
+			agro_antib_conc = int(input(f'Antibiotic concentration used for selection of Agrobacterium strain containing {name}: '))
+			# append antibiotic concentration to list of antibiotic concentrations
+			agro_antib_conc_lst.append(agro_antib_conc)
+			# pair construct name with agro antibiotic and antibiotic with concentration
+			con_agro_antib_dict.update({name : agro_antib_name})
+			agro_antib_name_conc_dict.update({agro_antib_name : agro_antib_conc})
+			# FsK antibiotic resistance gene for transformation
+			fsk_antib_name = str(input(f'Antibiotic name used for FsK selection during transformation: '))
+			# fsk antibiotic resistance concentration ug/mL
+			fsk_antib_conc = int(input(f'Antibiotic concentration used for FsK selection during transformation (ug/mL): '))
+			# pair construct name fsk antibiotic and antibiotic with concentration
+			con_fsk_antib_dict.update({name: fsk_antib_name})
+			fsk_antib_name_conc_dict.update({fsk_antib_name: fsk_antib_conc})
 	else:
-		print(f'Please choose valid construct number')
+		print(f'Warning! Please choose a valid construct number.')
 		break
 
-	# Number of plates per construct to calculate plates needed for transfers, 
+	# Number of plates per construct to calculate plates needed for transfers and initial transformations
 	plates_per_construct = int(input(f'Number of plates per construct for transformation: '))
-	# Construct Names
 
-
-	# Competent cells available? 
+	# Competent cells available? Will include one week of competent cell preparation if answer is no
 	agro_comp_cells = str(input(f'Are Agrobacterium competent cells available? Answer yes or no : '))
-	
-	# FsK antibiotic resistance gene for transformation
-	fsk_antib_name = str(input(f'Antibiotic name used for FsK selection during transformation: '))
-	fsk_antib_name_abbrev = str(input(f'Abbreviation of antibiotic name used for FsK selection during transformation: '))
-	# agrobacterium antibiotic resistance concentration ug/mL
-	fsk_antib_conc = int(input(f'Antibiotic concentration used for FsK selection during transformation (ug/mL): '))
+
 	# Ask if FsK strain is WT or other
 	fsk_strain_wt = str(input(f'Are you using FsK WT (NEK) as parent strain? Answer yes or no: '))
 	if fsk_strain_wt == "yes":
@@ -46,16 +61,15 @@ def data_input():
 		break
 	elif fsk_strain_wt == "no":
 		# if other WT strain, then ask the name (for protocol) and specify antibiotic  to see if they compete with current selection
-		fsk_strain_other = str(input(f'Name for parent FsK strain used: '))
+		fsk_other_strain = str(input(f'Name for parent FsK strain used: '))
 		fsk_other_antib_name = str(input(f'Antibiotic name used for parent FsK strain selection: '))
-		fsk_other_antib_name_abbrev = str(input(f'Abbreviation of antibiotic name used for FsK selection during transformation: '))
 		fsk_other_antib_conc = int(input(f'Antibiotic concentration used for parent FsK strain selection (ug/mL): '))
 	else:
 		print(f'Please asnwer yes or no.')
 
 	#This goes to main calculactions/checks that everything is in order, not data input
-	if fsk_antib_name == fsk_other_antib_name or fsk_antib_name_abbrev == fsk_other_antib_name_abbrev:
-		print(f'Warning!: Parent strain also has resistance to {fsk_antib_name}. Selection will not be successful.')
+	if fsk_antib_name == fsk_other_antib_name:
+		print(f'Warning!: Parent strain {fsk_other_strain} also has resistance to {fsk_antib_name}. Selection during transformation will not be successful.')
 
 	
 	
