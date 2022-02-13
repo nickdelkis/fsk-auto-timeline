@@ -11,11 +11,11 @@ def data_input():
 	# Number of constructs
 	construct_number = int(input(f'Number of constructs for transformation (e.g. 5): '))
 	if construct_number == 1:
-		con_name = str(input(f"Please enter your construct's name: ")
+		con_name = str(input(f"Please enter your construct's name: "))
 		# agrobacterium antibiotic resistance gene
 		agro_antib_name = str(input(f'Antibiotic name used for Agrobacterium: '))
 		# agrobacterium antibiotic resistance concentration ug/mL
-		agro_antib_conc = int(input(f'Antibiotic concentration used for Agrobacterium: '))		
+		agro_antib_conc = int(input(f'Antibiotic concentration used for Agrobacterium: '))	
 	elif construct_number > 1:
 		print(f"Please enter your constructs' names")
 		name_lst = []
