@@ -10,6 +10,15 @@ from datetime import datetime, timedelta
 from dateutil import parser
 
 
+class Construct:
+	def __init__(self):
+		self.con_name = ""
+		self.agro_antib_name = ""
+		self.agro_antib_conc = ""
+		self.fsk_antib_name = ""
+		self.fsk_antib_conc = ""
+
+
 def data_input():
 	""" Ask for input from the user, to customize protocol """
 	# Number of constructs
