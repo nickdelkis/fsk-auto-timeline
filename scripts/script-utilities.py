@@ -8,7 +8,6 @@ or PDF ready for print. """
 import sys
 from datetime import datetime, timedelta
 from dateutil import parser
-from tabulate import tabulate
 from math import ceil
 import pandas as pd
 
@@ -43,12 +42,10 @@ class Construct:
         # Ask if fsk strain is WT or not
         self.fsk_wt_strain = str(input(f'Are you using FsK WT (NEK) as parent strain? Answer yes or no: '))
         if self.fsk_wt_strain == "yes":
-            self.fsk_wt_strain = TRUE
             # if WT strain, nothing needs to be asked (no extra/competing antibiotic)
             pass
         # if uses other fsk strain,
         elif self.fsk_wt_strain == "no":
-            self.fsk_wt_strain = FALSE
             # if other WT strain, then ask the name (for protocol) and specify antibiotic
             # to see if they compete with current selection
             self.fsk_other_strain = str(input(f'Name for parent FsK strain used: '))
@@ -59,7 +56,8 @@ class Construct:
         else:
             print(f'Please answer yes or no.')
             sys.exit(1)
-
+        return self.name, self.agro_antib_name, self.agro_antib_conc, self.fsk_antib_name, self.fsk_antib_conc,\
+               self.fsk_wt_strain, self.fsk_other_strain, self.fsk_other_antib_name
 
 
 def data_input():
@@ -70,6 +68,8 @@ def data_input():
     if construct_number > 0:
         print(f"Please enter your constructs' names")
         construct_list = []
+        global name_list
+        name_list = []
         global agro_antib_name_list
         agro_antib_name_list = []
         global agro_antib_conc_list
@@ -83,13 +83,14 @@ def data_input():
         global fsk_other_strain_list
         fsk_other_strain_list = []
         global fsk_other_antib_name_list
-        fsk_other_antib_name_list
+        fsk_other_antib_name_list = []
         for n in range(construct_number):
-            c = f'c{n+1}'
+            c = f'c{n + 1}'
             construct_list.append(c)
         for c in construct_list:
             c = Construct()
             c.add()
+            name_list.append(c.name)
             agro_antib_name_list.append(c.agro_antib_name)
             agro_antib_conc_list.append(c.agro_antib_conc)
             fsk_antib_name_list.append(c.fsk_antib_name)
@@ -97,11 +98,9 @@ def data_input():
             fsk_wt_strain_list.append(c.fsk_wt_strain)
             fsk_other_strain_list.append(c.fsk_other_strain)
             fsk_other_antib_name_list.append(c.fsk_other_antib_name)
-
     else:
         print(f'Warning! Please choose a valid construct number.')
         sys.exit(1)
-
     # Number of plates per construct to calculate plates needed for transfers and initial transformations
     global plates_per_construct
     plates_per_construct = int(input(f'Number of plates per construct for transformation (e.g. 5): '))
@@ -114,9 +113,9 @@ def data_input():
         sys.exit(1)
 
     # Ask for starting date (uses dateutil parser so strict format not required)
+    global starting_date
     starting_date = parser.parse(input("Enter experiment's starting date: "))
     print(starting_date)
-
 
 
 def round_up(n, decimals=-2):
@@ -128,30 +127,81 @@ def round_up(n, decimals=-2):
 def calculate():
     """Calculate all required components for performing the protocol.
     This contains plates, membranes, media, media components. Also uses round_up() to make some volumes look better."""
-# Calculate plates per transfer/transformation
+    # Calculate plates per transfer/transformation
     global plate_batch
     plate_batch = construct_number * plates_per_construct + 10
     # CN calculate membranes for transformation
     global membranes
     membranes = construct_number * plates_per_construct + 5
     # calculate IM liquid medium required to go through all necessary steps, plus overage in mL
-    global im
-    im = round_up(construct_number*60)
+    global im_ml
+    im_ml = round_up(construct_number * 60)
+    im_lt = im_ml / 1000
+
+    # calculate volume in microliters for pottasium phosphate 1.25M pH=4.8 - 800 per liter
+    global pot_phosph
+    pot_phosph = im_lt * 800
+    # 50 X MN buffer in mL - 20 per lt
+    global mn_buffer
+    mn_buffer = im_lt * 20
+    # 1000X IM salts in mL - 5 per lt
+    global im_salts
+    im_salts = im_lt * 5
+    # MES 1M pH 5.6 - 40 per lt
+    global mes
+    mes = im_lt * 40
+    # CaCl - 0.02 g per lt
+    global cacl
+    cacl = im_lt * 0.02
+    # FeSO4 1mg/mL - 1 mL per lt
+    global feso4
+    feso4 = im_lt
+    # NH4NO3 - 0.4 g per lt
+    global nh4no3
+    nh4no3 = im_lt * 0.4
+    # glycerol 100% in mL
+    global glycerol
+    glycerol = im_lt * 5
+    # glucose in grams - 1 per lt
+    global glucose
+    glucose = im_lt
+    # agar in grams = 15 g per lt
+    global agar
+    agar = im_lt * 15
+    # acetosyringone 200 mM stock in mL - 1 per liter
+    acs = im_lt
+    # create recipe list
+    global im_buffer_list
+    im_buffer_list = [pot_phosph, mn_buffer, im_salts, mes, cacl, feso4, nh4no3, glycerol, glucose]
+    # create list with names
+    global im_buffer_name_list
+    im_buffer_name_list = ["1.25M Potassium Phosphate buffer (μL)", "50X MN buffer (mL)", "1000X IM salts (mL)",
+                       "1M MES pH 5.6 (mL)", "CaCl dihydrate (gr)", "1mg/mL FeSO4 (mL)", "NH4NO3 (gr)",
+                       "100% Glycerol (mL)", "Glucose (gr)"]
+    return plate_batch, membranes, im_lt
 
 
 def create_table():
     """Create table with strains, antibiotics, plates per construct
     Use pandas and dataframe function"""
-    table_dict = {"Agrobacterium antibiotic": agro_antib_name_list,
-    "Concentration (ug/mL)": agro_antib_conc_list,
-    "FsK antibiotic": fsk_antib_name_list,
-    "Concentration (ug/mL)": fsk_antib_conc_list,
-    "FsK WT strain as parent": fsk_wt_strain_list,
-    "FsK parent strain name": fsk_other_strain_list,
-    "FsK parent strain antibiotic": fsk_other_antib_name_list}
-    table = pd.DataFrame(table_dict, index= FALSE)
-    return table
+    construct_table_dict = {"Construct Name": name_list, "Agrobacterium Antibiotic": agro_antib_name_list,
+                  "Concentration (ug/mL)": agro_antib_conc_list,
+                  "FsK antibiotic": fsk_antib_name_list,
+                  "Concentration (ug/mL)": fsk_antib_conc_list,
+                  "FsK WT strain as parent": fsk_wt_strain_list,
+                  "FsK parent strain name": fsk_other_strain_list,
+                  "FsK parent strain antibiotic": fsk_other_antib_name_list}
+    global construct_table
+    construct_table = pd.DataFrame(construct_table_dict, index=False)
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
+    print(construct_table)
 
+    im_buffer_table_dict = {"Component": im_buffer_name_list, "Quantity": im_buffer_list}
+    global im_buffer_table
+    im_buffer_table = pd.DataFrame(im_buffer_table_dict, index=False)
+    print()
+
+    return construct_table
 
 
 def add_week0():
@@ -159,4 +209,9 @@ def add_week0():
     if agro_comp_cells == 'yes':
         pass
     elif agro_comp_cells == 'no':
-        # TODO: Make protocol create a Week 0 for competent cell prep
+        pass  # TODO: Make protocol create a Week 0 for competent cell prep
+
+
+data_input()
+calculate()
+create_table()
